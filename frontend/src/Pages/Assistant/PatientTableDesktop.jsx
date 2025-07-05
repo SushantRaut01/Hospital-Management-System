@@ -6,7 +6,7 @@ const PatientTableDesktop = () => {
   const [editingPatient, setEditingPatient] = useState(null);
 
   const fetchPatients = () => {
-    fetch("http://127.0.0.1:8000/api/assistant/patients/")
+    fetch("/api/assistant/patients/")
       .then((res) => res.json())
       .then((data) => setPatients(data))
       .catch((err) => console.error("Fetch error:", err));
@@ -17,7 +17,7 @@ const PatientTableDesktop = () => {
   }, []);
 
   const updateStatus = (id, newStatus) => {
-    fetch(`http://127.0.0.1:8000/api/assistant/update-status/${id}/`, {
+    fetch(`/api/assistant/update-status/${id}/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
@@ -30,7 +30,7 @@ const PatientTableDesktop = () => {
 
   const deletePatient = (id) => {
     if (window.confirm("Are you sure you want to delete this patient?")) {
-      fetch(`http://127.0.0.1:8000/api/assistant/delete-patient/${id}/`, {
+      fetch(`/api/assistant/delete-patient/${id}/`, {
         method: "DELETE",
       })
         .then((res) => {

@@ -37,6 +37,7 @@ def autocomplete_medicine_api(request):
 
 
 @api_view(['POST'])
+
 def save_prescription(request):
     try:
         data = request.data

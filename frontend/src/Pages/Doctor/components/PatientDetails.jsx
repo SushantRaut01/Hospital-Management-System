@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { apiFetch } from "../../../utils/api"; // ✅ use centralized fetch
 
 const PatientDetails = ({ patient }) => {
   const [medName, setMedName] = useState("");
@@ -15,18 +16,23 @@ const PatientDetails = ({ patient }) => {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (medName.trim()) {
-      fetch(`http://localhost:8000/api/doctor/medicines/?q=${medName}`)
-        .then((res) => res.json())
-        .then((data) => {
+    const fetchSuggestions = async () => {
+      if (medName.trim()) {
+        try {
+          const data = await apiFetch(`/doctor/medicines/?q=${medName}`);
           setSuggestions(data);
           setShowSuggestions(true);
           setActiveSuggestionIndex(0);
-        });
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
+        } catch (err) {
+          console.error("Suggestion fetch error:", err);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    fetchSuggestions();
   }, [medName]);
 
   const handleKeyDown = (e) => {
@@ -97,34 +103,30 @@ const PatientDetails = ({ patient }) => {
     }
 
     const payload = {
-      patient_id: patient.pid,
+      patient_id: patient.id,
       medicines: prescriptions,
     };
 
     try {
-      const res = await fetch("http://localhost:8000/api/doctor/save-prescription/", {
+      const data = await apiFetch("/doctor/save-prescription/", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        alert("✅ Prescription saved!");
-        setPrescriptions([]);
-      } else {
-        alert("❌ Error: " + (data.error || "Failed to save."));
-      }
+      alert("✅ Prescription saved!");
+      setPrescriptions([]);
     } catch (err) {
       console.error(err);
-      alert("❌ Server error.");
+      alert("❌ Error saving prescription.");
     }
   };
 
-  if (!patient) return <p className="text-gray-500">Select a patient to start prescribing.</p>;
+  if (!patient)
+    return <p className="text-gray-500">Select a patient to start prescribing.</p>;
 
   return (
     <div className="bg-white p-6 rounded shadow space-y-6 print:p-0 print:shadow-none print:bg-white w-full">
+      {/* Patient Details */}
       <div>
         <h2 className="text-2xl font-bold mb-2">{patient.name}</h2>
         <div className="grid grid-cols-2 gap-2 text-gray-800 text-lg">
@@ -137,8 +139,10 @@ const PatientDetails = ({ patient }) => {
         </div>
       </div>
 
+      {/* Prescription Form */}
       <form onSubmit={handleAddPrescription} className="space-y-4 relative">
         <h3 className="text-xl font-semibold">Add Prescription</h3>
+
         <div className="relative">
           <input
             ref={inputRef}
@@ -153,11 +157,11 @@ const PatientDetails = ({ patient }) => {
             required
           />
           {showSuggestions && suggestions.length > 0 && (
-            <ul className="absolute z-50 bg-white border border-gray-300 w-full rounded shadow-xl mt-1 max-h-[250px] overflow-y-auto no-scrollbar">
+            <ul className="absolute z-50 bg-white border w-full rounded shadow-xl mt-1 max-h-[250px] overflow-y-auto no-scrollbar">
               {suggestions.map((med, idx) => (
                 <li
                   key={idx}
-                  className={`px-4 py-3 border-b border-gray-200 text-lg cursor-pointer ${
+                  className={`px-4 py-3 border-b text-lg cursor-pointer ${
                     idx === activeSuggestionIndex
                       ? "bg-blue-100 font-semibold"
                       : "hover:bg-blue-50"
@@ -213,6 +217,7 @@ const PatientDetails = ({ patient }) => {
         </button>
       </form>
 
+      {/* Prescription Table */}
       {prescriptions.length > 0 && (
         <div>
           <h3 className="text-xl font-semibold mt-6 mb-2">Prescribed Medicines</h3>

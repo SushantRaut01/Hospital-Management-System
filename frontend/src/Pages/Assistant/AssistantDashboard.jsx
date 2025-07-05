@@ -3,15 +3,16 @@ import React, { useEffect, useState } from "react";
 import AddPatientForm from "./AddPatientForm";
 import PatientCardMobile from "./PatientCardMobile";
 import PatientTableDesktop from "./PatientTableDesktop";
+import { apiFetch } from "../../utils/api";
 
 const AssistantDashboard = () => {
   const [patients, setPatients] = useState([]);
+  const [editingPatient, setEditingPatient] = useState(null);
 
-  // Initial fetch
+  // Fetch patients from API
   const fetchPatients = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/assistant/patients/");
-      const data = await response.json();
+      const data = await apiFetch("/api/assistant/patients/");
       setPatients(data);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -22,9 +23,20 @@ const AssistantDashboard = () => {
     fetchPatients();
   }, []);
 
-  // ⬅️ Append new patient to list
-  const handlePatientAdded = (newPatient) => {
-    setPatients((prev) => [newPatient, ...prev]);
+  const handlePatientAdded = () => {
+    fetchPatients();
+    setEditingPatient(null);
+  };
+
+  // Called when user clicks "Edit" in table or card
+  const handleEditPatient = (patient) => {
+    if (!patient || !patient.id) {
+      console.error("Invalid patient to edit:", patient);
+      alert("Cannot edit: patient has no ID!");
+      return;
+    }
+    setEditingPatient(patient);
+    document.getElementById("popupForm")?.classList.remove("hidden");
   };
 
   return (
@@ -34,7 +46,10 @@ const AssistantDashboard = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">Assistant Dashboard</h1>
           <button
-            onClick={() => document.getElementById("popupForm").classList.remove("hidden")}
+            onClick={() => {
+              setEditingPatient(null);  // Reset form to "add" mode
+              document.getElementById("popupForm").classList.remove("hidden");
+            }}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow"
           >
             + Add Patient
@@ -55,18 +70,26 @@ const AssistantDashboard = () => {
             <option value="On Hold">On Hold</option>
             <option value="Emergency">Emergency</option>
           </select>
-          <button className="bg-gray-800 text-white px-5 py-2 rounded-lg hover:bg-gray-900">Filter</button>
+          <button
+            type="button"
+            className="bg-gray-800 text-white px-5 py-2 rounded-lg hover:bg-gray-900"
+          >
+            Filter
+          </button>
         </form>
 
         {/* Patient Table (Desktop) */}
-        <PatientTableDesktop patients={patients} />
+        <PatientTableDesktop patients={patients} onEdit={handleEditPatient} />
 
         {/* Patient Cards (Mobile) */}
-        <PatientCardMobile patients={patients} />
+        <PatientCardMobile patients={patients} onEdit={handleEditPatient} />
       </div>
 
-      {/* Add Patient Popup Form */}
-      <AddPatientForm onPatientAdded={handlePatientAdded} />
+      {/* Add/Edit Patient Popup Form */}
+      <AddPatientForm
+        editingPatient={editingPatient}
+        onPatientSaved={handlePatientAdded}
+      />
     </div>
   );
 };
